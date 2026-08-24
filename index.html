@@ -4052,8 +4052,13 @@ body.is-safari .about-hero__heading {
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(180deg, rgba(22,35,63,0) 45%, rgba(22,35,63,0.75) 100%);
+    background-color: rgba(22, 35, 63, 0.82);
     z-index: 1;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+.portfolio-card:hover::after {
+    opacity: 1;
 }
 .portfolio-card:hover img {
     transform: scale(1.05);
@@ -4064,8 +4069,27 @@ body.is-safari .about-hero__heading {
     height: 100%;
     display: flex;
     flex-direction: column;
-    justify-content: flex-end;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
     padding: 1.75rem;
+}
+.portfolio-card__label > * {
+    opacity: 0;
+    transform: translateY(16px);
+    filter: blur(6px);
+    transition: opacity 0.5s ease, transform 0.5s ease, filter 0.5s ease;
+}
+.portfolio-card:hover .portfolio-card__tag {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0px);
+    transition-delay: 0.12s;
+}
+.portfolio-card:hover .portfolio-card__title {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0px);
 }
 .portfolio-card__tag {
     font-family: var(--font-sans);
