@@ -4264,16 +4264,21 @@ body.is-safari .about-hero__heading {
 }
 .testimonial-card__author {
     display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    text-align: right;
-    gap: 0.1rem;
+    flex-direction: row;
+    align-items: baseline;
+    justify-content: center;
+    text-align: center;
+    gap: 0.35rem;
+    width: 100%;
 }
 .testimonial-card__name {
     font-family: var(--font-sans);
     font-size: 0.9rem;
     font-weight: 500;
     color: var(--bg-light);
+}
+.testimonial-card__name::after {
+    content: ',';
 }
 .testimonial-card__title {
     font-family: var(--font-sans);
@@ -4413,7 +4418,7 @@ body.is-safari .about-hero__heading {
 <div class="callout callout--right">
 <span>Human crafted</span>
 </div>
-<p class="hero-subhead">My creative practice, where timeless craft and forward-thinking technology work side by side.</p>
+<p class="hero-subhead">Pixel Paper Co. pairs thoughtful human craft with the boundless potential of the latest digital tech.</p>
 <div class="scroll-cue" aria-hidden="true">
 <div class="scroll-cue__track"><div class="scroll-cue__dot"></div></div>
 </div>
@@ -4518,12 +4523,16 @@ body.is-safari .about-hero__heading {
 <path d="M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8" fill="currentColor"/>
 </svg>
 </span>
-<span class="testimonial-card__project">Project Name</span>
+<span class="testimonial-card__tags">
+<span class="testimonial-card__project">Social Media Design</span>
+<span class="testimonial-card__project">Brochure Design</span>
+<span class="testimonial-card__project">Marketing Material</span>
+</span>
 </div>
-<p class="testimonial-card__quote">&#8220;Placeholder quote &#8212; something about attention to detail, clear communication, and a final result that exceeded expectations.&#8221;</p>
+<p class="testimonial-card__quote">&#8220;Keila asked all the right questions at the beginning of the project to understand my brand and design aesthetic. Nothing was up in the air or left to chance and appreciated that she let me know what to expect each step of the design process. She had fresh and creative ideas and was able to capture my vision. She is responsive, communicative, flexible and an all-around joy to work with.&#8221;</p>
 <div class="testimonial-card__author">
-<span class="testimonial-card__name">Client Name</span>
-<span class="testimonial-card__title">Title, Company Name</span>
+<span class="testimonial-card__name">Courtney</span>
+<span class="testimonial-card__title">Wedding Planner</span>
 </div>
 </div>
 </div>
