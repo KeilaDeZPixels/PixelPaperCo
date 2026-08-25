@@ -6,6 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="https://use.typekit.net/vmi0nhf.css">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 /* cyrillic-ext */
 @font-face {
@@ -228,7 +229,7 @@
     --gradient-yellow: #fff9c4;
     
     /* Typography */
-    --font-sans: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     --font-serif: 'Instrument Serif', Georgia, serif;
 
     /* Logo sizing — edit these two values to scale the mark */
@@ -4155,7 +4156,7 @@ body.is-safari .about-hero__heading {
 }
 .testimonials__intro {
     text-align: center;
-    max-width: 640px;
+    max-width: 760px;
     margin: 0 auto 6rem;
 }
 .testimonials__eyebrow {
@@ -4170,7 +4171,7 @@ body.is-safari .about-hero__heading {
 #testimonials .testimonials__heading {
     font-family: var(--font-serif);
     font-weight: 400;
-    font-size: clamp(2.6rem, 4vw, 3.4rem) !important;
+    font-size: clamp(3rem, 4vw, 3.8rem) !important;
     color: var(--bg-light);
     margin: 0 0 0.75rem;
 }
@@ -4254,9 +4255,9 @@ body.is-safari .about-hero__heading {
     padding: 3px 12px;
 }
 .testimonial-card__quote {
-    font-family: var(--font-serif);
+    font-family: var(--font-sans);
     font-style: normal;
-    font-size: clamp(1.625rem, 2vw, 1.875rem);
+    font-size: clamp(1.25rem, 2vw, 1.5rem);
     line-height: 1.4;
     color: var(--bg-light);
     text-align: center;
@@ -4294,6 +4295,7 @@ body.is-safari .about-hero__heading {
     display: flex;
     flex-direction: column;
     gap: 1.25rem;
+    padding-top: 30px;
     -webkit-mask-image: linear-gradient(to right, transparent, black 12%, black 88%, transparent);
     mask-image: linear-gradient(to right, transparent, black 12%, black 88%, transparent);
 }
@@ -4303,6 +4305,9 @@ body.is-safari .about-hero__heading {
     gap: 3.5rem;
     width: max-content;
     animation: testimonialsMarquee 56s linear infinite;
+}
+.testimonials__marquee-track--row1 {
+    animation-name: testimonialsMarqueeRow1;
 }
 .testimonials__marquee-track--row2 {
     animation-name: testimonialsMarqueeReverse;
@@ -4325,10 +4330,14 @@ body.is-safari .about-hero__heading {
 }
 @keyframes testimonialsMarquee {
     from { transform: translateX(0); }
-    to { transform: translateX(-50%); }
+    to { transform: translateX(calc(-1 * var(--marquee-distance, 50%))); }
+}
+@keyframes testimonialsMarqueeRow1 {
+    from { transform: translateY(-15px) translateX(0); }
+    to { transform: translateY(-15px) translateX(calc(-1 * var(--marquee-distance, 50%))); }
 }
 @keyframes testimonialsMarqueeReverse {
-    from { transform: translateX(-50%); }
+    from { transform: translateX(calc(-1 * var(--marquee-distance, 50%))); }
     to { transform: translateX(0); }
 }
 
@@ -4684,6 +4693,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initWorkPageSlider();      // Run early so work page positioning is set while content still hidden
     initHeroAnimations();
     initTestimonialsStack();
+    initMarqueeSeamlessLoop();
     initContactGridSpotlight();
     initHeroTitleImageHover();
     initWorkLaptopSequence();
@@ -4872,6 +4882,60 @@ function initTestimonialsStack() {
 // Contact section background — grid of small squares, rendered on canvas so each
 // square can independently grow and shift toward cyan the closer it is to the
 // cursor (a plain CSS background pattern can't animate individual tiles like this).
+// Logo marquee — each track contains its logo list duplicated once (for a
+// seamless loop). Rather than assume the two halves are exactly 50/50 (which
+// can be thrown off by real images with uneven natural widths, or images
+// still loading when the layout is first measured), we measure the actual
+// rendered pixel position where the second copy begins and use that exact
+// distance for the animation. This is set via a CSS custom property that the
+// keyframes read, so the loop is pixel-perfect regardless of image sizing.
+function initMarqueeSeamlessLoop() {
+    const tracks = document.querySelectorAll('.testimonials__marquee-track');
+    if (!tracks.length) {
+        return;
+    }
+
+    const measure = (track) => {
+        const children = track.children;
+        const half = Math.floor(children.length / 2);
+        if (half < 1 || !children[half]) {
+            return;
+        }
+        // The second copy starts exactly at this child's offset — that's the
+        // precise distance one full loop needs to travel.
+        const distance = children[half].offsetLeft;
+        if (distance > 0) {
+            track.style.setProperty('--marquee-distance', `${distance}px`);
+        }
+    };
+
+    const measureAll = () => tracks.forEach(measure);
+
+    // Images loading changes each track's real width, so wait for all of them
+    // before measuring — then re-measure once more shortly after in case any
+    // late-loading image (or font causing a layout shift) changed things.
+    const images = document.querySelectorAll('.testimonials__marquee-track img');
+    const pending = Array.from(images).filter((img) => !img.complete);
+
+    if (!pending.length) {
+        measureAll();
+    } else {
+        let remaining = pending.length;
+        const onOneLoaded = () => {
+            remaining -= 1;
+            if (remaining <= 0) {
+                measureAll();
+            }
+        };
+        pending.forEach((img) => {
+            img.addEventListener('load', onOneLoaded, { once: true });
+            img.addEventListener('error', onOneLoaded, { once: true });
+        });
+    }
+
+    window.addEventListener('resize', measureAll);
+}
+
 function initContactGridSpotlight() {
     const contact = document.getElementById('contact');
     const canvas = contact ? contact.querySelector('.contact__grid-canvas') : null;
