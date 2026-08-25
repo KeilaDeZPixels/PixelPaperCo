@@ -1475,7 +1475,7 @@ body.is-safari .process__disk[data-disk="1"] .process__disk-graphic::before {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-height: 80vh;
+    min-height: 100svh;
     background-color: var(--text-dark);
 }
 #contact h2 {
@@ -4139,11 +4139,59 @@ body.is-safari .about-hero__heading {
    the section pins while 3 cards cross-fade/slide through in place.
    ================================================================ */
 .testimonials {
+    position: relative;
     background-color: var(--text-dark);
     padding: 0 !important;
     overflow: hidden;
 }
+.testimonials__glow {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(110px);
+    pointer-events: none;
+    z-index: 0;
+}
+.testimonials__glow--a {
+    width: 700px;
+    height: 700px;
+    top: 58%;
+    left: 46%;
+    background: radial-gradient(circle, rgba(99, 102, 241, 0.22) 0%, rgba(99, 102, 241, 0) 70%);
+    animation: testimonialsGlowDriftA 22s ease-in-out infinite;
+}
+.testimonials__glow--b {
+    width: 600px;
+    height: 600px;
+    top: 62%;
+    left: 54%;
+    background: radial-gradient(circle, rgba(244, 114, 182, 0.16) 0%, rgba(244, 114, 182, 0) 70%);
+    animation: testimonialsGlowDriftB 26s ease-in-out infinite;
+}
+.testimonials__glow--c,
+.testimonials__glow--d {
+    width: 550px;
+    height: 550px;
+    top: 60%;
+    background: radial-gradient(circle, rgba(244, 114, 182, 0.09) 0%, rgba(244, 114, 182, 0) 70%);
+    will-change: transform;
+}
+.testimonials__glow--c {
+    left: 38%;
+}
+.testimonials__glow--d {
+    left: 62%;
+}
+@keyframes testimonialsGlowDriftA {
+    0%, 100% { transform: translate(-50%, -50%) translate(0, 0) scale(1); }
+    50% { transform: translate(-50%, -50%) translate(40px, 25px) scale(1.08); }
+}
+@keyframes testimonialsGlowDriftB {
+    0%, 100% { transform: translate(-50%, -50%) translate(0, 0) scale(1); }
+    50% { transform: translate(-50%, -50%) translate(-35px, -20px) scale(1.06); }
+}
 .testimonials__pin {
+    position: relative;
+    z-index: 1;
     height: 100vh;
     display: flex;
     flex-direction: column;
@@ -4476,6 +4524,10 @@ body.is-safari .about-hero__heading {
 </div>
 </section>
 <section class="section testimonials" id="testimonials">
+<div class="testimonials__glow testimonials__glow--a" aria-hidden="true"></div>
+<div class="testimonials__glow testimonials__glow--b" aria-hidden="true"></div>
+<div class="testimonials__glow testimonials__glow--c" aria-hidden="true"></div>
+<div class="testimonials__glow testimonials__glow--d" aria-hidden="true"></div>
 <div class="testimonials__pin">
 <div class="testimonials__intro">
 <h2 class="testimonials__heading">Happy Clients</h2>
@@ -4831,6 +4883,14 @@ function initTestimonialsStack() {
     gsap.set(cards, { y: ENTRY_PX, scale: SCALE_START, opacity: 1 });
     cards.forEach((card) => { card.style.pointerEvents = 'none'; });
 
+    // Subtle pink glows behind the cards — move at different rates as the
+    // user scrolls through the pinned section, for a soft parallax depth
+    // effect (distinct from glow A/B's constant ambient drift above).
+    const glowC = document.querySelector('.testimonials__glow--c');
+    const glowD = document.querySelector('.testimonials__glow--d');
+    if (glowC) gsap.set(glowC, { xPercent: -50, yPercent: -50 });
+    if (glowD) gsap.set(glowD, { xPercent: -50, yPercent: -50 });
+
     // One unit of "time" per card on the timeline below. Cards never leave —
     // each one arrives and stays in place; the next simply covers it on
     // arrival (later cards already sit at a higher z-index via CSS).
@@ -4844,6 +4904,10 @@ function initTestimonialsStack() {
             pin: pinEl,
             scrub: true,
             anticipatePin: 1,
+            onUpdate: (self) => {
+                if (glowC) gsap.set(glowC, { x: self.progress * -60, y: self.progress * 40, xPercent: -50, yPercent: -50 });
+                if (glowD) gsap.set(glowD, { x: self.progress * 50, y: self.progress * -40, xPercent: -50, yPercent: -50 });
+            },
         }
     });
 
@@ -4939,6 +5003,7 @@ function initMarqueeSeamlessLoop() {
 function initContactGridSpotlight() {
     const contact = document.getElementById('contact');
     const canvas = contact ? contact.querySelector('.contact__grid-canvas') : null;
+    const contentEl = contact ? contact.querySelector('.section-content') : null;
     if (!contact || !canvas) {
         return;
     }
@@ -4950,12 +5015,15 @@ function initContactGridSpotlight() {
     const SPACING = 14;
     const BASE_SIZE = 2;
     const MAX_SIZE = 4.2;
-    const HOVER_RADIUS = 150;
+    const HOVER_RADIUS = 394;
     const TOP_FADE = 140;
     const BASE_COLOR = [46, 66, 112];   // #2E4270
     const HOVER_COLOR = [94, 234, 212]; // #5EEAD4
     const canHover = !window.matchMedia('(hover: none)').matches && !prefersReducedMotion();
     const EASE = 0.08; // lower = smoother/slower flow toward the cursor
+    // Extra breathing room around the text block so the glow fades out just
+    // before reaching it rather than cutting off sharply at its exact edge.
+    const TEXT_PAD = 16;
 
     let width = 0;
     let height = 0;
@@ -4965,6 +5033,22 @@ function initContactGridSpotlight() {
     let mouseX = -9999;
     let mouseY = -9999;
     let rafId = null;
+    let exclusion = null; // { left, right, top, bottom } in contact-relative px, or null
+
+    function measureExclusion() {
+        if (!contentEl) {
+            exclusion = null;
+            return;
+        }
+        const contactRect = contact.getBoundingClientRect();
+        const contentRect = contentEl.getBoundingClientRect();
+        exclusion = {
+            left: (contentRect.left - contactRect.left) - TEXT_PAD,
+            right: (contentRect.right - contactRect.left) + TEXT_PAD,
+            top: (contentRect.top - contactRect.top) - TEXT_PAD,
+            bottom: (contentRect.bottom - contactRect.top) + TEXT_PAD,
+        };
+    }
 
     function resize() {
         const rect = contact.getBoundingClientRect();
@@ -4975,6 +5059,7 @@ function initContactGridSpotlight() {
         canvas.style.width = `${width}px`;
         canvas.style.height = `${height}px`;
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        measureExclusion();
         draw();
     }
 
@@ -4983,12 +5068,19 @@ function initContactGridSpotlight() {
         for (let y = SPACING / 2; y < height; y += SPACING) {
             const topFade = Math.max(0, Math.min(1, y / TOP_FADE));
             for (let x = SPACING / 2; x < width; x += SPACING) {
-                const dx = x - mouseX;
-                const dy = y - mouseY;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                const proximity = canHover ? Math.max(0, 1 - dist / HOVER_RADIUS) : 0;
-                // Smoothstep easing (0,0)->(1,1) — gentler ramp than a hard square falloff
-                const eased = proximity * proximity * (3 - 2 * proximity);
+                const behindText = exclusion
+                    && x >= exclusion.left && x <= exclusion.right
+                    && y >= exclusion.top && y <= exclusion.bottom;
+
+                let eased = 0;
+                if (!behindText) {
+                    const dx = x - mouseX;
+                    const dy = y - mouseY;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    const proximity = canHover ? Math.max(0, 1 - dist / HOVER_RADIUS) : 0;
+                    // Smoothstep easing (0,0)->(1,1) — gentler ramp than a hard square falloff
+                    eased = proximity * proximity * (3 - 2 * proximity);
+                }
 
                 const size = BASE_SIZE + (MAX_SIZE - BASE_SIZE) * eased;
                 const r = BASE_COLOR[0] + (HOVER_COLOR[0] - BASE_COLOR[0]) * eased;
